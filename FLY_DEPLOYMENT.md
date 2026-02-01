@@ -2,10 +2,37 @@
 
 Follow these simple steps to deploy the PDF Manager and its persistent PostgreSQL database onto a new Fly.io account.
 
-## Prerequisites
-1.  **Fly.io Account**: Ensure the client has an account.
-2.  **Flyctl Installed**: Install the Fly CLI on your machine.
-3.  **Login**: Run `fly auth login` to authenticate with the client's account.
+## 🛠️ Step 0: Prerequisites & Installation
+
+Before you begin, you need to install the **Fly CLI (`flyctl`)** and log in.
+
+### 1. Install Fly CLI
+Choose the command for your Operating System:
+
+*   **macOS (using Homebrew):**
+    ```bash
+    brew install flyctl
+    ```
+*   **macOS or Linux (using Curl):**
+    ```bash
+    curl -L https://fly.io/install.sh | sh
+    ```
+*   **Windows (using PowerShell):**
+    ```powershell
+    iwr https://fly.io/install.ps1 -useb | iex
+    ```
+
+### 2. Verify Installation
+Check if it's working by running:
+```bash
+fly version
+```
+
+### 3. Login to Fly.io
+Run this command to open a browser and log into the client's account:
+```bash
+fly auth login
+```
 
 ---
 
@@ -92,7 +119,7 @@ We use a custom PostgreSQL setup to ensure data persistence and control.
     *   **Password**: `tircha@12345`
 
 3.  **Persistence Test**:
-    Upload a document, then run `fly apps restart`. The document will **still be there** because it is now stored in PostgreSQL.
+    Upload a document, then restart the app. The document will **still be there** because it is now stored in PostgreSQL.
 
 ---
 
