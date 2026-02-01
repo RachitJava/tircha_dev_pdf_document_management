@@ -1,0 +1,650 @@
+{% extends "base.html" %}
+
+{% block title %}{{ doc.title }}{% endblock %}
+
+{% block container_class %}full-width-reader{% endblock %}
+
+{% block content %}
+<!-- Content Wrapper -->
+<div class="read-protected"
+    style="position: relative; padding-top: 110px; min-height: 100vh; width: 100%; overflow-x: auto; background: #f1f5f9;">
+    <!-- Structured data for JS -->
+    <div id="viewer-data" data-pdf-base64="{{ doc.pdf_base64 or '' }}" style="display:none;"></div>
+
+    <div id="pdf-viewer-container"
+        style="width: 100%; display: flex; flex-direction: column; align-items: center; padding: 20px 0;">
+        {% if doc.pdf_base64 %}
+        <div id="pdf-render-canvas-container"
+            style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+            <!-- Canvases will be rendered here -->
+        </div>
+        <!-- Loading Spinner -->
+        <div id="pdf-loading" style="padding: 50px; text-align: center; color: var(--accent-color);">
+            <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 3rem;"></i>
+            <p style="margin-top: 1rem; font-weight: 600;">Rendering Original PDF Quality...</p>
+        </div>
+        {% else %}
+        <div
+            style="height: 60vh; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; color: #64748b;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <h3 style="margin-bottom: 0.5rem; color: #1e293b;">Compatibility Update Required</h3>
+            <p style="max-width: 400px; text-align: center;">This document was uploaded with an older version of the
+                reader. Please click <strong>Edit</strong> and <strong>Save</strong> in the dashboard to enable
+                high-quality viewing.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- PDF.js via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+
+<!-- Styles & Scripts -->
+<style>
+    /* Print Protection */
+    @media print {
+        body {
+            display: none !important;
+        }
+    }
+
+    /* Selection Protection */
+    .read-protected {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        counter-reset: page-counter;
+    }
+
+    /* Search Highlight */
+    .search-highlight {
+        background-color: yellow;
+        color: black;
+        border-radius: 2px;
+    }
+
+    .search-highlight.active {
+        background-color: orange;
+        outline: 2px solid darkorange;
+    }
+
+    /* Visual Page Numbers */
+    .pdf-page {
+        position: relative;
+        counter-increment: page-counter;
+    }
+
+    /* Toolbars and other styles... */
+    .sticky-search-toolbar {
+        position: fixed;
+        /* Should match var(--nav-height) from style.css */
+        top: 72px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        padding: 6px 16px;
+        background: rgba(15, 23, 42, 0.95);
+        backdrop-filter: blur(12px);
+        border-bottom: 2px solid #000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 1100;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+        transform: none !important;
+        /* Fix collision with global reader-toolbar */
+        border-radius: 0 !important;
+        /* Fix collision with global reader-toolbar */
+        bottom: auto !important;
+    }
+
+    .doc-title-toolbar {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #fff;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Toolbar Groups */
+    .tb-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .sticky-search-toolbar {
+            top: 56px !important;
+            padding: 4px 6px;
+            gap: 2px;
+            min-height: 44px;
+            flex-direction: row;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            justify-content: flex-start;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tb-group {
+            gap: 2px;
+            flex-shrink: 0;
+        }
+
+        .hide-mobile {
+            display: none;
+        }
+
+        .doc-title-toolbar {
+            display: none;
+        }
+
+        .read-protected {
+            padding-top: 110px !important;
+        }
+
+        #search-input {
+            max-width: 75px !important;
+            font-size: 0.7rem !important;
+            padding: 2px 6px !important;
+            height: 28px !important;
+        }
+    }
+
+    /* Fullscreen Mode Adjustments */
+    body.fullscreen-mode .navbar,
+    body.fullscreen-mode #main-footer,
+    :fullscreen .navbar,
+    :fullscreen #main-footer,
+    :-webkit-full-screen .navbar,
+    :-webkit-full-screen #main-footer,
+    :-moz-full-screen .navbar,
+    :-moz-full-screen #main-footer {
+        display: none !important;
+    }
+
+    body.fullscreen-mode .sticky-search-toolbar,
+    :fullscreen .sticky-search-toolbar,
+    :-webkit-full-screen .sticky-search-toolbar,
+    :-moz-full-screen .sticky-search-toolbar {
+        top: 0 !important;
+    }
+
+    body.fullscreen-mode .read-protected,
+    :fullscreen .read-protected,
+    :-webkit-full-screen .read-protected,
+    :-moz-full-screen .read-protected {
+        padding-top: 50px !important;
+        padding-bottom: 0 !important;
+    }
+
+    /* PDF Page Rendering Styling */
+    .pdf-page {
+        margin: 0 auto 30px auto !important;
+        background: white;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        position: relative;
+        display: block;
+        max-width: 100% !important;
+        overflow: hidden;
+    }
+
+    .pdf-page canvas,
+    .pdf-page svg {
+        width: 100% !important;
+        height: auto !important;
+        display: block;
+    }
+
+    /* Ensure images display properly */
+    .pdf-image-wrapper {
+        text-align: center;
+        margin: 1rem 0;
+    }
+
+    .pdf-image {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* PDF.js Text Layer Styling */
+    .textLayer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        overflow: hidden;
+        opacity: 1;
+        mix-blend-mode: multiply;
+        /* Helps highlights look natural over text */
+        line-height: 1.0;
+        text-indent: 0;
+        white-space: pre;
+    }
+
+    .textLayer>span {
+        color: transparent;
+        position: absolute;
+        white-space: pre;
+        cursor: text;
+        transform-origin: 0% 0%;
+    }
+
+    .search-match {
+        background-color: rgba(255, 255, 0, 0.4);
+        border-radius: 2px;
+        box-shadow: 0 0 4px yellow;
+    }
+
+    .search-match.active {
+        background-color: rgba(255, 165, 0, 0.8);
+        box-shadow: 0 0 8px orange;
+    }
+</style>
+
+<script>
+    // State
+    let pdfDoc = null;
+    let currentZoom = 1.1; // Balanced default
+    let totalPages = 0;
+    let isRendering = false;
+
+    // Init
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Dynamic initial zoom for mobile
+        if (window.innerWidth < 768) {
+            currentZoom = 0.8;
+            if (window.innerWidth < 480) currentZoom = 0.6;
+        }
+
+        const viewerData = document.getElementById('viewer-data');
+        if (viewerData) {
+            const b64 = viewerData.getAttribute('data-pdf-base64');
+            if (b64) {
+                renderPDF(b64);
+            }
+        }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(
+            evt => document.addEventListener(evt, updateFullscreenState)
+        );
+    });
+
+    function updateFullscreenState() {
+        if (document.fullscreenElement) {
+            document.body.classList.add('fullscreen-mode');
+        } else {
+            document.body.classList.remove('fullscreen-mode');
+        }
+    }
+
+    async function renderPDF(b64) {
+        const loading = document.getElementById('pdf-loading');
+        const container = document.getElementById('pdf-render-canvas-container');
+
+        try {
+            const binaryData = atob(b64);
+            const uint8Array = new Uint8Array(binaryData.length);
+            for (let i = 0; i < binaryData.length; i++) {
+                uint8Array[i] = binaryData.charCodeAt(i);
+            }
+
+            const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+            pdfDoc = await loadingTask.promise;
+            totalPages = pdfDoc.numPages;
+            document.getElementById('total-pages').textContent = totalPages;
+
+            // Render all pages
+            for (let i = 1; i <= totalPages; i++) {
+                await renderPage(i);
+            }
+
+            if (loading) loading.style.display = 'none';
+            setupPageObserver();
+        } catch (err) {
+            console.error("PDF.js error:", err);
+            if (loading) loading.innerHTML = `<p style='color:red;'>Failed to render: ${err.message}</p>`;
+        }
+    }
+
+    async function renderPage(num) {
+        const container = document.getElementById('pdf-render-canvas-container');
+        const page = await pdfDoc.getPage(num);
+
+        // --- Sophisticated Responsive Scaling ---
+        // Get the actual width of the container (subtracting some padding)
+        // --- Sophisticated Responsive Scaling ---
+        // Get the actual width of the container
+        const containerWidth = container.offsetWidth || window.innerWidth;
+        const padding = window.innerWidth < 768 ? 20 : 40;
+        const availableWidth = containerWidth - padding;
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+        // Calculate the scale required to fit the container width
+        const responsiveScale = (availableWidth / unscaledViewport.width);
+
+        let finalScale = currentZoom;
+        // On mobile, we prioritize fitting the screen
+        if (window.innerWidth < 768) {
+            finalScale = Math.min(currentZoom, responsiveScale);
+        }
+
+        const dpr = window.devicePixelRatio || 1;
+        const viewport = page.getViewport({ scale: finalScale });
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'pdf-page';
+        wrapper.id = `page-${num}`;
+        wrapper.style.width = Math.floor(viewport.width) + 'px';
+        wrapper.style.height = Math.floor(viewport.height) + 'px';
+
+        const canvas = document.createElement('canvas');
+        wrapper.appendChild(canvas);
+        container.appendChild(wrapper);
+
+        canvas.width = Math.floor(viewport.width * dpr);
+        canvas.height = Math.floor(viewport.height * dpr);
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+
+        const renderContext = {
+            canvasContext: canvas.getContext('2d', { alpha: false }),
+            viewport: viewport,
+            transform: [dpr, 0, 0, dpr, 0, 0]
+        };
+
+        await page.render(renderContext).promise;
+
+        // Render Text Layer - MUST use EXACT same viewport
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        wrapper.appendChild(textLayerDiv);
+
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({
+            textContent: textContent,
+            container: textLayerDiv,
+            viewport: viewport,
+            textDivs: []
+        });
+    }
+
+    // --- Toolbar Actions ---
+    function zoomIn() {
+        if (currentZoom < 4.0) {
+            currentZoom += 0.2;
+            reRenderAll();
+        }
+    }
+
+    function zoomOut() {
+        if (currentZoom > 0.4) {
+            currentZoom -= 0.2;
+            reRenderAll();
+        }
+    }
+
+    async function reRenderAll() {
+        if (isRendering) return;
+        isRendering = true;
+
+        const container = document.getElementById('pdf-render-canvas-container');
+        container.innerHTML = ''; // Clear existing
+        document.getElementById('zoom-level').textContent = Math.round(currentZoom * 100) + '%';
+
+        for (let i = 1; i <= totalPages; i++) {
+            await renderPage(i);
+        }
+        isRendering = false;
+        setupPageObserver();
+    }
+
+    function goToPage() {
+        const input = document.getElementById('page-input');
+        const num = parseInt(input.value);
+        if (num > 0 && num <= totalPages) {
+            const target = document.getElementById(`page-${num}`);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+
+    function setupPageObserver() {
+        const pages = document.querySelectorAll('.pdf-page');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    const num = id.replace('page-', '');
+                    const input = document.getElementById('page-input');
+                    if (input && document.activeElement !== input) input.value = num;
+                }
+            });
+        }, { threshold: 0.2 });
+        pages.forEach(p => observer.observe(p));
+    }
+
+    // --- Search Logic ---
+    let searchMatches = [];
+    let currentMatchIdx = -1;
+
+    async function findNext() {
+        const query = document.getElementById('search-input').value;
+        if (!query) return;
+
+        if (searchMatches.length === 0 || currentSearchQuery !== query) {
+            await performSearch(query);
+        }
+
+        if (searchMatches.length > 0) {
+            currentMatchIdx = (currentMatchIdx + 1) % searchMatches.length;
+            navigateToMatch(currentMatchIdx);
+        }
+    }
+
+    async function findPrev() {
+        const query = document.getElementById('search-input').value;
+        if (!query) return;
+
+        if (searchMatches.length === 0 || currentSearchQuery !== query) {
+            await performSearch(query);
+        }
+
+        if (searchMatches.length > 0) {
+            currentMatchIdx = (currentMatchIdx - 1 + searchMatches.length) % searchMatches.length;
+            navigateToMatch(currentMatchIdx);
+        }
+    }
+
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    let currentSearchQuery = "";
+    async function performSearch(query) {
+        clearHighlights();
+        currentSearchQuery = query;
+        searchMatches = [];
+        const escapedQuery = escapeRegExp(query);
+        const q = query.toLowerCase();
+
+        const textLayers = document.querySelectorAll('.textLayer');
+        textLayers.forEach((layer) => {
+            const spans = layer.querySelectorAll('span');
+            spans.forEach(span => {
+                const text = span.textContent.toLowerCase();
+                if (text.includes(q)) {
+                    // Wrap target text in highlight span with robust regex
+                    const innerHTML = span.textContent.replace(new RegExp(`(${escapedQuery})`, 'gi'), '<span class="search-match">$1</span>');
+                    span.innerHTML = innerHTML;
+
+                    const newMatches = span.querySelectorAll('.search-match');
+                    newMatches.forEach(m => searchMatches.push(m));
+                }
+            });
+        });
+
+        // Update counter
+        const counter = document.getElementById('search-counter');
+        if (counter) {
+            counter.textContent = searchMatches.length > 0 ? `1 / ${searchMatches.length}` : '0 / 0';
+            counter.style.display = 'block';
+        }
+
+        if (searchMatches.length === 0) {
+            alert("No matches found for: " + query);
+        }
+    }
+
+    function navigateToMatch(idx) {
+        searchMatches.forEach(m => m.classList.remove('active'));
+        const match = searchMatches[idx];
+        if (match) {
+            match.classList.add('active');
+            match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Update counter
+            const counter = document.getElementById('search-counter');
+            if (counter) {
+                counter.textContent = `${idx + 1} / ${searchMatches.length}`;
+            }
+        }
+    }
+
+    function clearHighlights() {
+        const textLayers = document.querySelectorAll('.textLayer');
+        textLayers.forEach(layer => {
+            const spans = layer.querySelectorAll('span');
+            spans.forEach(span => {
+                // Remove the highlight spans by just putting text back
+                span.innerHTML = span.textContent;
+            });
+        });
+    }
+
+    function clearSearch() {
+        document.getElementById('search-input').value = '';
+        const counter = document.getElementById('search-counter');
+        if (counter) {
+            counter.style.display = 'none';
+        }
+        clearHighlights();
+        searchMatches = [];
+        currentMatchIdx = -1;
+        currentSearchQuery = "";
+    }
+
+    // Keyboard enters
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            if (document.activeElement.id === 'search-input') {
+                findNext();
+            } else if (document.activeElement.id === 'page-input') {
+                goToPage();
+            }
+        }
+    });
+
+</script>
+{% endblock %}
+
+
+{% block toolbar %}
+<!-- Sticky Header Toolbar -->
+<div id="search-toolbar" class="sticky-search-toolbar"
+    style="background: linear-gradient(135deg, var(--pdf-header-color, #1e293b) 0%, color-mix(in srgb, var(--pdf-header-color, #1e293b) 85%, black) 100%); color: #ffffff; border-bottom: 3px solid var(--pdf-header-color, #1e293b); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+
+    <!-- Left: Navigation & Title -->
+    <div class="tb-group" style="gap: 6px;">
+        <a href="javascript:history.back()" class="btn btn-sm" title="Go Back"
+            style="background: rgba(255,255,255,0.95); color: var(--accent-color); border: 1px solid rgba(255,255,255,0.3); font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px 8px;">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span class="hide-mobile">BACK</span>
+        </a>
+        <div class="doc-title-toolbar" title="{{ doc.title }}">
+            {{ doc.title }}
+        </div>
+    </div>
+
+    <!-- Center Left: Zoom Control -->
+    <div class="tb-group"
+        style="background: rgba(0,0,0,0.25); padding: 4px; border-radius: 8px; backdrop-filter: blur(8px);">
+        <button onclick="zoomOut()" class="btn btn-sm"
+            style="background:transparent; color:#fff; border:none; padding: 2px 6px;" title="Zoom Out">
+            <i class="fa-solid fa-minus"></i>
+        </button>
+        <span id="zoom-level"
+            style="font-size: 0.75rem; font-weight: 800; min-width: 35px; text-align: center; color: #fff;">100%</span>
+        <button onclick="zoomIn()" class="btn btn-sm"
+            style="background:transparent; color:#fff; border:none; padding: 2px 6px;" title="Zoom In">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- Center: Page Navigation -->
+    <div class="tb-group">
+        <div
+            style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.95); padding: 4px 8px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <input type="number" id="page-input" min="1"
+                style="border: none; padding: 0; width: 25px; text-align: center; font-weight: 800; color: var(--accent-color); background: transparent; font-size: 0.8rem;"
+                value="1">
+            <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">/<span
+                    id="total-pages">--</span></span>
+        </div>
+    </div>
+
+    <!-- Right: Search -->
+    <div class="tb-group" style="flex: 1; justify-content: flex-end; gap: 4px;">
+        <div style="position: relative; display: flex; align-items: center; max-width: 150px; width: 100%;">
+            <input type="text" id="search-input" placeholder="SEARCH..."
+                style="padding: 6px 35px 6px 10px; height: 32px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); width: 100%; font-weight: 600; font-size: 0.75rem; background: rgba(255,255,255,0.95); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+            <span id="search-counter"
+                style="position: absolute; right: 5px; font-size: 0.65rem; font-weight: 800; color: var(--accent-color); display: none; background: #e0f2fe; padding: 1px 4px; border-radius: 4px;">0
+                / 0</span>
+        </div>
+        <div style="display: flex; gap: 2px;">
+            <button onclick="findNext()" class="btn btn-sm"
+                style="background: rgba(255,255,255,0.95); color: var(--accent-color); padding: 4px 8px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);"><i
+                    class="fa-solid fa-chevron-down"></i></button>
+            <button onclick="findPrev()" class="btn btn-sm"
+                style="background: rgba(255,255,255,0.95); color: var(--accent-color); padding: 4px 8px; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15);"><i
+                    class="fa-solid fa-chevron-up"></i></button>
+            <button onclick="clearSearch()" class="btn btn-sm"
+                style="background: rgba(0,0,0,0.3); color: #fff; padding: 4px 8px; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(8px);"><i
+                    class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Fullscreen -->
+        <button id="fullscreen-btn" onclick="toggleFullScreen()" class="btn btn-sm"
+            style="background: rgba(255,255,255,0.95); color: var(--pdf-header-color, #1e293b); font-weight: 700; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.15); padding: 4px 10px;"
+            title="Fullscreen">
+            <i class="fa-solid fa-expand"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
+    <h1 style="font-size: 2.25rem;">User Management</h1>
+    <button onclick="document.getElementById('add-user-form').style.display='block'" class="btn btn-primary">
+        <i class="fa-solid fa-user-plus"></i> Add New User
+    </button>
+</div>
+
+<!-- Add User Form -->
+<div id="add-user-form" class="card" style="display: none; margin-bottom: 3rem; padding: 2rem;">
+    <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">Create New System Access</h3>
+    <form action="{{ url_for('main.add_user_route') }}" method="POST" class="csrf-form"
+        style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-end;">
+        <input type="hidden" name="csrf_token" class="csrf-token-field">
+        <div class="form-group" style="flex: 2; min-width: 250px;">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-input" required placeholder="example_user">
+        </div>
+        <div class="form-group" style="flex: 2; min-width: 250px;">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-input" required placeholder="••••••••">
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 150px;">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-input" style="font-weight: 600;">
+                <option value="USER">USER</option>
+                <option value="ADMIN">ADMIN</option>
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex: 1.5; min-width: 200px;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">CREATE</button>
+            <button type="button" onclick="document.getElementById('add-user-form').style.display='none'"
+                class="btn btn-outline" style="flex: 1;">CANCEL</button>
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th style="width: 100px;"># ID</th>
+                <th>Identity</th>
+                <th>Access Level</th>
+                <th style="width: 150px; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td data-label="ID" style="font-family: monospace; font-weight: 600; color: var(--text-secondary);">
+                    #{{ user.id }}
+                </td>
+                <td data-label="Identity">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div
+                            style="width: 36px; height: 36px; background: var(--accent-glow); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-color);">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">{{ user.username }}</span>
+                    </div>
+                </td>
+                <td data-label="Access Level">
+                    {% if user.role == 'ADMIN' %}
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fa-solid fa-shield-halved"></i> ADMIN
+                    </span>
+                    {% else %}
+                    <span
+                        style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; color: #64748b; padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;">
+                        <i class="fa-solid fa-user-tag"></i> USER
+                    </span>
+                    {% endif %}
+                </td>
+                <td data-label="Actions" style="text-align: center;">
+                    {% if user.username != current_user.username %}
+                    <form action="{{ url_for('main.delete_user_route', id=user.id) }}" method="POST" class="csrf-form"
+                        onsubmit="return confirm('ARE YOU SURE YOU WANT TO TERMINATE THIS USER ACCESS?');"
+                        style="display: inline;">
+                        <input type="hidden" name="csrf_token" class="csrf-token-field">
+                        <button type="submit" class="btn btn-sm btn-danger" title="Delete User">
+                            <i class="fa-solid fa-user-minus"></i>
+                        </button>
+                    </form>
+                    {% else %}
+                    <span style="color: var(--text-secondary); font-size: 0.75rem; font-weight: 600;">(ACTIVE
+                        SESSION)</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const csrfToken = getCookie('csrf_access_token');
+        document.querySelectorAll('.csrf-token-field').forEach(field => {
+            field.value = csrfToken;
+        });
+    });
+</script>
+{% endblock %}

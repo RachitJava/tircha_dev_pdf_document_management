@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.class
+.env
+.venv
+env/
+venv/
+ENV/
+data.json
+tests/test_persistence.py
+instance/

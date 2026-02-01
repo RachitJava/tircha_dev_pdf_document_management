@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tircha Dev - {% block title %}Secure PDF Management{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style id="dynamic-theme">
+        :root {
+            --accent-color: {
+                    {
+                    theme_color or '#3495eb'
+                }
+            }
+
+            ;
+
+            --accent-glow: {
+                    {
+                    theme_color or '#3495eb'
+                }
+            }
+
+            33;
+
+            --pdf-header-color: {
+                    {
+                    pdf_header_color or '#1e293b'
+                }
+            }
+
+            ;
+        }
+    </style>
+</head>
+
+<body style="display: flex; flex-direction: column; min-height: 100vh;" oncontextmenu="return false;"
+    data-accent="{{ theme_color or '#3495eb' }}" data-pdf-header="{{ pdf_header_color or '#1e293b' }}">
+
+    <div id="delete-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); z-index: 2000; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 400px; width: 90%; text-align: center; border-color: var(--accent-color);">
+            <div
+                style="width: 64px; height: 64px; background: var(--accent-glow); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; color: var(--accent-color); font-size: 1.5rem;">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h2 style="margin-bottom: 0.75rem;">Confirm Delete</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem; font-size: 0.95rem;">Are you sure you want to
+                permanently remove <strong id="modal-doc-title" style="color: var(--text-primary);">this
+                    document</strong>?</p>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closeDeleteModal()" class="btn btn-outline" style="flex: 1;">CANCEL</button>
+                <div style="flex: 1;">
+                    <button type="button" id="confirm-delete-btn" class="btn btn-primary"
+                        style="width: 100%; background: #ef4444; border-color: #ef4444; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.2);">DELETE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container"
+            style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 0; padding-bottom: 0; height: 100%;">
+            <a href="/" class="nav-brand">TIRCHA DEV</a>
+            <div class="nav-links">
+                {% if current_user %}
+                {% if current_user.role == 'SUPERUSER' %}
+                <!-- Main Theme Picker -->
+                <div class="theme-picker-container"
+                    style="display: flex; align-items: center; gap: 0; background: #ffffff; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--glass-border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; padding: 0 8px; border-right: 1px solid #edf2f7; margin-right: 8px;">
+                        <i class="fa-solid fa-palette" style="color: var(--accent-color); font-size: 0.8rem;"></i>
+                    </div>
+                    <div
+                        style="position: relative; width: 24px; height: 24px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <input type="color" id="theme-picker" value="{{ theme_color or '#3495eb' }}"
+                            oninput="syncFromPicker(this.value)" onchange="updatePageTheme(this.value, true)"
+                            style="position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; border: none; background: transparent; cursor: pointer; padding: 0;">
+                    </div>
+                    <input type="text" id="hex-input" value="{{ theme_color or '#3495eb' }}"
+                        oninput="syncFromHex(this.value)" onchange="updatePageTheme(this.value, true)"
+                        style="width: 75px; border: none; background: transparent; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; outline: none; color: var(--text-primary); padding-left: 8px; font-weight: 600;">
+                </div>
+
+                <!-- PDF Header Color Picker -->
+                <div class="theme-picker-container"
+                    style="display: flex; align-items: center; gap: 0; background: #ffffff; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--glass-border); box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div
+                        style="display: flex; align-items: center; padding: 0 8px; border-right: 1px solid #edf2f7; margin-right: 8px;">
+                        <i class="fa-solid fa-file-pdf"
+                            style="color: var(--pdf-header-color, #1e293b); font-size: 0.8rem;"></i>
+                    </div>
+                    <div
+                        style="position: relative; width: 24px; height: 24px; border-radius: 6px; overflow: hidden; border: 1px solid #e2e8f0;">
+                        <input type="color" id="pdf-header-picker" value="{{ pdf_header_color or '#1e293b' }}"
+                            oninput="syncPdfHeaderFromPicker(this.value)"
+                            onchange="updatePdfHeaderTheme(this.value, true)"
+                            style="position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; border: none; background: transparent; cursor: pointer; padding: 0;">
+                    </div>
+                    <input type="text" id="pdf-header-hex" value="{{ pdf_header_color or '#1e293b' }}"
+                        oninput="syncPdfHeaderFromHex(this.value)" onchange="updatePdfHeaderTheme(this.value, true)"
+                        style="width: 75px; border: none; background: transparent; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; outline: none; color: var(--text-primary); padding-left: 8px; font-weight: 600;">
+                </div>
+                {% endif %}
+                {% if current_user.role in ['ADMIN', 'SUPERUSER'] %}
+                <a href="{{ url_for('main.admin_list') }}" class="btn btn-sm btn-outline"><i
+                        class="fa-solid fa-folder-open"></i> Docs</a>
+                <a href="{{ url_for('main.admin_users') }}" class="btn btn-sm btn-outline"><i
+                        class="fa-solid fa-users"></i> Users</a>
+                <a href="{{ url_for('main.upload') }}" class="btn btn-sm btn-primary"><i class="fa-solid fa-plus"></i>
+                    Upload</a>
+                {% else %}
+                <a href="{{ url_for('main.user_list') }}" class="btn btn-sm btn-outline"><i
+                        class="fa-solid fa-book"></i> Library</a>
+                {% endif %}
+                <a href="{{ url_for('main.logout') }}" class="btn btn-sm btn-outline"
+                    style="color: #ef4444; border-color: #fee2e2; background: #fff1f2;">
+                    <i class="fa-solid fa-power-off"></i>
+                </a>
+                {% else %}
+                <a href="{{ url_for('main.login') }}" class="btn btn-sm btn-outline">Login</a>
+                <a href="{{ url_for('main.register') }}" class="btn btn-sm btn-primary">Join Now</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+            <i class="fa-solid fa-{{ 'circle-check' if category == 'success' else 'circle-exclamation' }}"></i>
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="{% block container_class %}container{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block toolbar %}{% endblock %}
+
+    <footer id="main-footer"
+        style="position: fixed; bottom: 0; left: 0; right: 0; text-align: center; padding: 0.5rem 1rem; color: var(--text-secondary); font-size: 0.75rem; border-top: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); z-index: 900;">
+        &copy; 2026 Tircha Dev. Crafted with Precision. | Developed By - Rachit
+    </footer>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function applyTheme(color) {
+            if (!color || color.length < 4) return;
+            document.documentElement.style.setProperty('--accent-color', color);
+            document.documentElement.style.setProperty('--accent-glow', color + '33');
+            document.querySelectorAll('.nav-brand').forEach(el => el.style.color = color);
+
+            // Update icon color too if needed
+            const paletteIcon = document.querySelector('.fa-palette');
+            if (paletteIcon) paletteIcon.style.color = color;
+        }
+
+        function applyPdfHeaderTheme(color) {
+            if (!color || color.length < 4) return;
+            document.documentElement.style.setProperty('--pdf-header-color', color);
+
+            // Update PDF header icon color
+            const pdfIcon = document.querySelector('.fa-file-pdf');
+            if (pdfIcon) pdfIcon.style.color = color;
+
+            // Update the toolbar if it exists
+            const toolbar = document.getElementById('search-toolbar');
+            if (toolbar) {
+                toolbar.style.background = `linear-gradient(135deg, ${color} 0%, color-mix(in srgb, ${color} 85%, black) 100%)`;
+                toolbar.style.borderBottomColor = color;
+                toolbar.style.boxShadow = `0 4px 20px ${color}33`;
+            }
+        }
+
+        // Initialize theme from data attribute
+        const initialColor = document.body.getAttribute('data-accent');
+        applyTheme(initialColor);
+
+        // Initialize PDF header theme from data attribute
+        const initialPdfColor = document.body.getAttribute('data-pdf-header') || '#1e293b';
+        applyPdfHeaderTheme(initialPdfColor);
+
+        function syncFromPicker(val) {
+            const hexInput = document.getElementById('hex-input');
+            if (hexInput) hexInput.value = val;
+            applyTheme(val);
+        }
+
+        function syncFromHex(val) {
+            if (val.length === 7 && val.startsWith('#')) {
+                const picker = document.getElementById('theme-picker');
+                if (picker) picker.value = val;
+                applyTheme(val);
+            }
+        }
+
+        function syncPdfHeaderFromPicker(val) {
+            const hexInput = document.getElementById('pdf-header-hex');
+            if (hexInput) hexInput.value = val;
+            applyPdfHeaderTheme(val);
+        }
+
+        function syncPdfHeaderFromHex(val) {
+            if (val.length === 7 && val.startsWith('#')) {
+                const picker = document.getElementById('pdf-header-picker');
+                if (picker) picker.value = val;
+                applyPdfHeaderTheme(val);
+            }
+        }
+
+        function updatePageTheme(color, persist) {
+            if (!color || color.length < 4) return;
+
+            // Ensure color is standard 7-char hex for backend
+            if (color.length === 4 && color.startsWith('#')) {
+                // Convert #RGB to #RRGGBB
+                color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+            }
+
+            if (color.length !== 7 || !color.startsWith('#')) return;
+
+            applyTheme(color);
+
+            if (persist) {
+                const csrfToken = getCookie('csrf_access_token');
+                fetch('{{ url_for("main.update_theme") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ color: color })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) console.error('Theme sync error:', data.error);
+                    })
+                    .catch(err => console.error('Theme sync failed:', err));
+            }
+        }
+
+        function updatePdfHeaderTheme(color, persist) {
+            if (!color || color.length < 4) return;
+
+            // Ensure color is standard 7-char hex for backend
+            if (color.length === 4 && color.startsWith('#')) {
+                // Convert #RGB to #RRGGBB
+                color = '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
+            }
+
+            if (color.length !== 7 || !color.startsWith('#')) return;
+
+            applyPdfHeaderTheme(color);
+
+            if (persist) {
+                const csrfToken = getCookie('csrf_access_token');
+                fetch('{{ url_for("main.update_pdf_header_theme") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({ color: color })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.error) console.error('PDF header theme sync error:', data.error);
+                    })
+                    .catch(err => console.error('PDF header theme sync failed:', err));
+            }
+        }
+
+        let docIdToDelete = null;
+
+        function openDeleteModal(id, title) {
+            docIdToDelete = id;
+            document.getElementById('modal-doc-title').textContent = title;
+            document.getElementById('delete-modal').style.display = 'flex';
+        }
+
+        document.getElementById('confirm-delete-btn')?.addEventListener('click', async () => {
+            if (!docIdToDelete) return;
+            
+            const csrfToken = getCookie('csrf_access_token');
+            const btn = document.getElementById('confirm-delete-btn');
+            btn.disabled = true;
+            btn.innerText = 'DELETING...';
+
+            try {
+                const response = await fetch('/admin/delete/' + docIdToDelete, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (response.ok || response.redirected) {
+                    window.location.href = '{{ url_for("main.admin_list") }}';
+                } else {
+                    alert('Deletion failed. Please try again.');
+                    closeDeleteModal();
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('An error occurred. Please refresh and try again.');
+                closeDeleteModal();
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'DELETE';
+            }
+        });
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').style.display = 'none';
+        }
+
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(a => {
+                a.style.opacity = '0';
+                a.style.transform = 'translateX(20px)';
+                setTimeout(() => a.remove(), 400);
+            });
+        }, 3500);
+
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 's')) e.preventDefault();
+        });
+    </script>
+</body>
+
+</html>

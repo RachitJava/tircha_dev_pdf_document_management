@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Library{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1rem;">
+    <h1 style="font-size: 2.25rem;">My Library</h1>
+</div>
+
+<div class="card" style="margin-bottom: 3rem; padding: 1.5rem;">
+    <form method="GET" action="{{ url_for('main.user_list') }}"
+        style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="position: relative; flex: 1; min-width: 300px;">
+            <i class="fa-solid fa-magnifying-glass"
+                style="position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+            <input type="text" name="q" placeholder="Search your secure documents..." class="form-input"
+                style="padding-left: 3rem; text-transform: none; font-weight: normal;"
+                value="{{ request.args.get('q', '') }}">
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="padding-left: 2rem; padding-right: 2rem;">
+                SEARCH
+            </button>
+            {% if request.args.get('q') %}
+            <a href="{{ url_for('main.user_list') }}" class="btn btn-outline" title="Reset Search">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if docs.items %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 2.5rem;">
+    {% for doc in docs.items %}
+    <a href="{{ url_for('main.read_document', id=doc.id) }}" class="pdf-card">
+        <div class="pdf-icon">
+            <i class="fa-solid fa-file-pdf"></i>
+        </div>
+        <div>
+            <h3 style="margin-bottom: 0.75rem; font-size: 1.25rem; color: var(--text-primary);">{{ doc.title }}</h3>
+            <p
+                style="font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 1.5rem;">
+                {{ doc.description or 'Securely access this document by clicking to view its contents.' }}
+            </p>
+        </div>
+
+        <div
+            style="margin-top: auto; padding-top: 1.5rem; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">
+                <i class="fa-regular fa-clock" style="margin-right: 6px; color: var(--accent-color);"></i>
+                {{ doc.created_at.strftime('%m/%d/%Y') }}
+            </div>
+            <div class="btn btn-sm btn-primary" style="padding: 0.4rem 1rem;">
+                READ <i class="fa-solid fa-angle-right"></i>
+            </div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+<div style="margin-top: 4rem; display: flex; justify-content: center; gap: 0.5rem;">
+    {% if docs.has_prev %}
+    <a href="{{ url_for('main.user_list', page=docs.prev_num, q=request.args.get('q')) }}"
+        class="btn btn-sm btn-outline">
+        <i class="fa-solid fa-chevron-left"></i>
+    </a>
+    {% endif %}
+
+    {% for page_num in docs.iter_pages() %}
+    {% if page_num %}
+    {% if page_num != docs.page %}
+    <a href="{{ url_for('main.user_list', page=page_num, q=request.args.get('q')) }}" class="btn btn-sm btn-outline"
+        style="min-width: 40px;">{{ page_num }}</a>
+    {% else %}
+    <span class="btn btn-sm btn-primary" style="min-width: 40px;">{{ page_num }}</span>
+    {% endif %}
+    {% else %}
+    <span style="align-self: center; color: var(--text-secondary);">...</span>
+    {% endif %}
+    {% endfor %}
+
+    {% if docs.has_next %}
+    <a href="{{ url_for('main.user_list', page=docs.next_num, q=request.args.get('q')) }}"
+        class="btn btn-sm btn-outline">
+        <i class="fa-solid fa-chevron-right"></i>
+    </a>
+    {% endif %}
+</div>
+
+{% else %}
+<div
+    style="text-align: center; padding: 6rem 2rem; background: white; border-radius: var(--radius-lg); border: 1px dashed var(--glass-border);">
+    <i class="fa-solid fa-book-open"
+        style="font-size: 4rem; color: var(--accent-color); opacity: 0.1; margin-bottom: 2rem; display: block;"></i>
+    <h2 style="color: var(--text-primary); margin-bottom: 0.5rem;">Your library is empty</h2>
+    <p style="color: var(--text-secondary);">No documents match your current search criteria.</p>
+</div>
+{% endif %}
+{% endblock %}

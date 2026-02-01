@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if doc else 'Upload' }} Document{% endblock %}
+
+{% block content %}
+<div style="max-width: 440px; margin: 0 auto; padding: 0.25rem;">
+    <div style="margin-bottom: 0.25rem;">
+        <h2 style="display: flex; align-items: center; gap: 6px; font-size: 1.1rem; margin: 0;">
+            <i class="fa-solid {{ 'fa-file-pen' if doc else 'fa-cloud-arrow-up' }}"
+                style="color: var(--accent-color);"></i>
+            {{ 'Edit' if doc else 'Upload' }} PDF
+        </h2>
+    </div>
+
+    <div class="card animate-fade-in" style="padding: 0.75rem; border-radius: 8px;">
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" style="font-weight: 600; font-size: 0.7rem; margin-bottom: 2px;"><i
+                        class="fa-solid fa-heading" style="margin-right: 4px;"></i>Title</label>
+                <input type="text" name="title" class="form-input" value="{{ doc.title if doc else '' }}" required
+                    placeholder="Enter title" style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" style="font-weight: 600; font-size: 0.7rem; margin-bottom: 2px;"><i
+                        class="fa-solid fa-align-left" style="margin-right: 4px;"></i>Description</label>
+                <textarea name="description" class="form-input" rows="1" placeholder="Short description..."
+                    style="padding: 0.4rem 0.6rem; font-size: 0.85rem;">{{ doc.description if doc else '' }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0.5rem;">
+                <label class="form-label" style="font-weight: 600; font-size: 0.7rem; margin-bottom: 2px;"><i
+                        class="fa-solid fa-file-pdf" style="margin-right: 4px;"></i>PDF File</label>
+                <div id="drop-zone"
+                    style="border: 2px dashed #cbd5e1; border-radius: 6px; padding: 0.5rem; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8fafc;">
+                    <input type="file" name="file" id="file-upload" accept=".pdf" style="display: none;">
+                    <div id="file-info-ui">
+                        <i class="fa-solid fa-cloud-arrow-up"
+                            style="font-size: 1rem; color: #94a3b8; margin-bottom: 0.15rem;"></i>
+                        <p style="margin-bottom: 0; font-weight: 600; font-size: 0.75rem;">{{ 'Change' if
+                            doc else 'Click
+                            or drag' }}</p>
+                    </div>
+                    <p style="font-size: 0.7rem; color: var(--text-secondary);">Max 16MB</p>
+                </div>
+                <div id="selected-file-name" style="display: none; font-weight: 600; color: var(--accent-color);">
+                    <i class="fa-solid fa-file-circle-check"
+                        style="font-size: 1.25rem; margin-bottom: 4px; display: block;"></i>
+                    <span id="file-name-text" style="font-size: 0.8rem;"></span>
+                </div>
+            </div>
+            {% if doc %}
+            <p style="font-size: 0.7rem; color: #d97706; margin-top: 4px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Blank to keep current.
+            </p>
+            {% endif %}
+            <div id="error-msg"
+                style="color: #ef4444; font-size: 0.85rem; padding: 10px; background: #fee2e2; border-radius: 8px; margin-top: 10px; display: none;">
+            </div>
+    </div>
+
+    <div id="upload-actions" style="display: flex; gap: 0.4rem; margin-top: 0.75rem;">
+        <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.4rem; font-size: 0.8rem;">
+            <i class="fa-solid fa-check"></i> {{ 'Save' if doc else 'Upload' }}
+        </button>
+        <a href="{{ url_for('main.admin_list') }}" class="btn btn-outline"
+            style="flex: 1; padding: 0.4rem; font-size: 0.8rem; text-align: center;">
+            Cancel
+        </a>
+    </div>
+    </form>
+</div>
+</div>
+
+<!-- Upload Progress Modal Popup -->
+<div id="upload-progress-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); z-index: 9999; align-items: center; justify-content: center;">
+    <div class="card" style="max-width: 400px; width: 90%; text-align: center; padding: 3rem 2rem;">
+        <div class="progress-container" style="position: relative; width: 150px; height: 150px; margin: 0 auto;">
+            <svg viewBox="0 0 100 100" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#e2e8f0" stroke-width="6" />
+                <circle id="progress-circle" cx="50" cy="50" r="45" fill="none" stroke="var(--accent-color)"
+                    stroke-width="6" stroke-dasharray="283" stroke-dashoffset="283"
+                    style="transition: stroke-dashoffset 0.1s linear;" />
+            </svg>
+            <div id="progress-text"
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 2rem; color: var(--accent-color);">
+                0%</div>
+        </div>
+        <h3 style="margin-top: 2rem; margin-bottom: 0.5rem; color: var(--text-primary);">Uploading & Processing</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0;">Please wait while we process your
+            PDF...</p>
+        <p style="font-size: 0.85rem; color: #ef4444; margin-top: 1rem; font-weight: 600;">⚠️ Do not close this window
+        </p>
+    </div>
+</div>
+
+<script>
+    const MAX_SIZE = 16 * 1024 * 1024;
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-upload');
+    const fileInfoUI = document.getElementById('file-info-ui');
+    const selectedFileUI = document.getElementById('selected-file-name');
+    const fileNameText = document.getElementById('file-name-text');
+    const errorMsg = document.getElementById('error-msg');
+    let droppedFile = null;
+
+    function getCookie(name) {
+        let value = "; " + document.cookie;
+        let parts = value.split("; " + name + "=");
+        if (parts.length === 2) return parts.pop().split(";").shift();
+        return null;
+    }
+
+    dropZone.onclick = () => fileInput.click();
+
+    // Drag and Drop support
+    dropZone.ondragover = (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#000';
+        dropZone.style.background = '#f9fafb';
+    };
+    dropZone.ondragleave = () => {
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f8fafc';
+    };
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#cbd5e1';
+        dropZone.style.background = '#f8fafc';
+        if (e.dataTransfer.files.length) {
+            droppedFile = e.dataTransfer.files[0];
+            handleFileSelect(droppedFile);
+        }
+    };
+
+    fileInput.onchange = function () {
+        if (this.files && this.files[0]) {
+            droppedFile = null; // Clear dropped file if user uses picker
+            handleFileSelect(this.files[0]);
+        }
+    };
+
+    function handleFileSelect(file) {
+        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+            showError("INVALID FILE TYPE. PLEASE SELECT A PDF DOCUMENT.");
+            resetInput();
+            return;
+        }
+        if (file.size > MAX_SIZE) {
+            showError("FILE TOO LARGE. MAXIMUM SIZE IS 16MB.");
+            resetInput();
+            return;
+        }
+        errorMsg.style.display = 'none';
+        fileInfoUI.style.display = 'none';
+        selectedFileUI.style.display = 'block';
+        selectedFileUI.style.color = '#000';
+        fileNameText.textContent = file.name;
+    }
+
+    function showError(msg) {
+        errorMsg.textContent = msg;
+        errorMsg.style.display = 'block';
+        errorMsg.style.background = '#000';
+        errorMsg.style.color = '#fff';
+        errorMsg.style.borderRadius = '0';
+        errorMsg.style.fontWeight = '700';
+    }
+
+    function resetInput() {
+        fileInput.value = '';
+        droppedFile = null;
+        fileInfoUI.style.display = 'block';
+        selectedFileUI.style.display = 'none';
+    }
+
+    document.getElementById('upload-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const file = droppedFile || fileInput.files[0];
+        const isEdit = "{{ 'true' if doc else 'false' }}" === "true";
+
+        if (!isEdit && !file) {
+            showError("PLEASE SELECT A PDF FILE TO UPLOAD.");
+            return;
+        }
+
+        const formData = new FormData(this);
+        if (droppedFile) {
+            formData.set('file', droppedFile);
+        }
+
+        const xhr = new XMLHttpRequest();
+        // Show modal popup
+        document.getElementById('upload-progress-modal').style.display = 'flex';
+
+        xhr.upload.addEventListener('progress', function (e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const offset = 283 - (283 * percent / 100);
+                document.getElementById('progress-circle').style.strokeDashoffset = offset;
+                document.getElementById('progress-text').textContent = percent + '%';
+            }
+        });
+
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    window.location.href = "{{ url_for('main.admin_list') }}";
+                } else {
+                    // Hide modal on error
+                    document.getElementById('upload-progress-modal').style.display = 'none';
+                    let errorText = "UPLOAD FAILED.";
+                    try {
+                        const res = JSON.parse(xhr.responseText);
+                        if (res.error) errorText = res.error.toUpperCase();
+                    } catch (e) { }
+                    showError(errorText + " (ERROR " + xhr.status + ")");
+                }
+            }
+        };
+
+        xhr.open('POST', window.location.href, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+        // Add JWT CSRF Token from Cookie
+        const csrfToken = getCookie('csrf_access_token');
+        if (csrfToken) {
+            xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+        }
+
+        xhr.send(formData);
+    });
+</script>
+{% endblock %}

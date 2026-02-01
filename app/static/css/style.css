@@ -1,0 +1,483 @@
+:root {
+    --bg-color: #f8fafc;
+    --card-bg: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --accent-color: #3495eb;
+    --accent-glow: rgba(52, 149, 235, 0.2);
+    --glass-border: rgba(226, 232, 240, 0.8);
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --nav-height: 72px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-top: var(--nav-height);
+    padding-bottom: 50px;
+    /* Space for fixed footer */
+}
+
+h1,
+h2,
+h3 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+a {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+}
+
+/* --- Layout --- */
+.container {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem;
+}
+
+.navbar {
+    height: var(--nav-height);
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--glass-border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    transition: transform 0.2s;
+}
+
+.nav-brand:hover {
+    transform: scale(1.02);
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+}
+
+/* --- Buttons --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white !important;
+    border-color: var(--accent-color);
+    box-shadow: 0 10px 15px -3px var(--accent-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px var(--accent-glow);
+    filter: brightness(1.1);
+}
+
+.btn-outline {
+    background: white;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-outline:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: #fee2e2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+}
+
+.btn-danger:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+}
+
+/* --- Cards --- */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--shadow-lg);
+}
+
+.pdf-card {
+    background: white;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-md);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.pdf-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 0;
+    background: var(--accent-color);
+    transition: height 0.4s;
+}
+
+.pdf-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent-color);
+}
+
+.pdf-card:hover::after {
+    height: 100%;
+}
+
+.pdf-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--accent-glow);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+}
+
+/* --- Tables --- */
+.table-container {
+    background: white;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+}
+
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.styled-table thead th {
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem 1.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.styled-table tbody tr {
+    transition: background 0.2s;
+}
+
+.styled-table tbody tr:hover {
+    background: #f1f5f9;
+}
+
+.styled-table tbody td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    vertical-align: middle;
+}
+
+/* --- Form --- */
+.form-input {
+    width: 100%;
+    padding: 0.875rem 1.25rem;
+    border: 1.5px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    background: #f8fafc;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.form-input:focus {
+    outline: none;
+    background: white;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px var(--accent-glow);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+/* --- Flash Messages --- */
+.flash-messages {
+    position: fixed;
+    top: calc(var(--nav-height) + 1rem);
+    right: 1.5rem;
+    z-index: 2000;
+    max-width: 320px;
+    width: calc(100% - 3rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+}
+
+.alert {
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-md);
+    background: white;
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    pointer-events: auto;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alert-success {
+    border-left: 4px solid #10b981;
+    color: #065f46;
+}
+
+.alert-error,
+.alert-danger {
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
+}
+
+.alert-info {
+    border-left: 4px solid var(--accent-color);
+    color: #1e40af;
+}
+
+@media (max-width: 768px) {
+    .flash-messages {
+        top: 64px;
+        right: 1.5rem;
+        left: 1.5rem;
+        max-width: none;
+        width: auto;
+    }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .container {
+        padding: 1.5rem 1rem;
+    }
+
+    .navbar {
+        height: auto;
+        min-height: 56px;
+        padding: 0;
+    }
+
+    .navbar .container {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        padding: 0 1rem !important;
+        gap: 0.5rem !important;
+        height: 56px !important;
+    }
+
+    .nav-brand {
+        font-size: 1.1rem;
+        gap: 6px;
+    }
+
+    .nav-links {
+        gap: 0.5rem;
+    }
+
+    .nav-links .btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .nav-links .btn i {
+        margin: 0;
+    }
+
+    .nav-links span {
+        display: none;
+    }
+
+    .theme-picker-container {
+        display: none !important;
+        /* Hide complex pickers on small mobile */
+    }
+
+    @media (min-width: 480px) {
+        .theme-picker-container {
+            display: flex !important;
+        }
+
+        .theme-picker-container input[type="text"] {
+            display: none;
+        }
+    }
+
+    /* Table to Stack */
+    .styled-table,
+    .styled-table thead,
+    .styled-table tbody,
+    .styled-table th,
+    .styled-table td,
+    .styled-table tr {
+        display: block;
+    }
+
+    .styled-table thead {
+        display: none;
+    }
+
+    .styled-table tr {
+        margin: 1rem;
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-md);
+        background: white;
+    }
+
+    .styled-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 0.875rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 0.9rem;
+    }
+
+    .styled-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        text-align: left;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+}
+
+/* --- PDF Reader --- */
+.reader-toolbar {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(12px);
+    padding: 0.75rem 1.5rem;
+    border-radius: 99px;
+    display: flex;
+    gap: 1.5rem;
+    z-index: 1000;
+    color: white;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pdf-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* PDF content styling - allow inline styles to work */
+.pdf-page {
+    margin-bottom: 2rem;
+}
+
+.pdf-text-block {
+    margin-bottom: 1rem;
+}
+
+.pdf-text-block p {
+    margin-bottom: 0.5rem;
+}
+
+/* Images in PDF */
+.pdf-image-wrapper {
+    margin: 1rem 0;
+    text-align: center;
+}
+
+.pdf-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}

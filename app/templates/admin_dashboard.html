@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1.5rem;">
+    <h1 style="font-size: 2.25rem;">Document Management</h1>
+    <a href="{{ url_for('main.upload') }}" class="btn btn-primary">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload New
+    </a>
+</div>
+
+<div class="card" style="margin-bottom: 3rem; padding: 1.5rem;">
+    <form method="GET" action="{{ url_for('main.admin_list') }}"
+        style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="position: relative; flex: 1; min-width: 300px;">
+            <i class="fa-solid fa-magnifying-glass"
+                style="position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+            <input type="text" name="q" placeholder="Search by title, description or keywords..." class="form-input"
+                style="padding-left: 3rem;" value="{{ request.args.get('q', '') }}">
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="padding-left: 2rem; padding-right: 2rem;">
+                SEARCH
+            </button>
+            {% if request.args.get('q') %}
+            <a href="{{ url_for('main.admin_list') }}" class="btn btn-outline" title="Reset Search">
+                <i class="fa-solid fa-rotate-left"></i>
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    {% if docs.items %}
+    <table class="styled-table">
+        <thead>
+            <tr>
+                <th style="width: 40%">Document Details</th>
+                <th style="width: 35%">Description</th>
+                <th style="width: 20%">Date Added</th>
+                <th style="width: 15rem; text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in docs.items %}
+            <tr>
+                <td data-label="Document Details">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="pdf-icon" style="width: 36px; height: 36px; margin-bottom: 0; font-size: 1rem;">
+                            <i class="fa-solid fa-file-pdf"></i>
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">{{ doc.title }}</span>
+                    </div>
+                </td>
+                <td data-label="Description">
+                    <div
+                        style="color: var(--text-secondary); font-size: 0.9rem; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ doc.description or 'No description provided.' }}
+                    </div>
+                </td>
+                <td data-label="Date Added">
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">
+                        <i class="fa-regular fa-calendar-days" style="margin-right: 6px; opacity: 0.7;"></i>
+                        {{ doc.created_at.strftime('%b %d, %Y') if doc.created_at and doc.created_at.strftime else
+                        doc.created_at|default('-', true) }}
+                    </div>
+                </td>
+                <td data-label="Actions" style="text-align: center;">
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <a href="{{ url_for('main.read_document', id=doc.id) }}" class="btn btn-sm btn-outline"
+                            title="View">
+                            <i class="fa-solid fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('main.edit_document', id=doc.id) }}" class="btn btn-sm btn-outline"
+                            title="Edit">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <button data-id="{{ doc.id }}" data-title="{{ doc.title }}"
+                            onclick="openDeleteModal(this.dataset.id, this.dataset.title)" class="btn btn-sm btn-danger"
+                            title="Delete">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div
+        style="padding: 1.5rem; display: flex; justify-content: center; gap: 0.5rem; border-top: 1px solid var(--glass-border); background: #fbfcfd;">
+        {% if docs.has_prev %}
+        <a href="{{ url_for('main.admin_list', page=docs.prev_num, q=request.args.get('q')) }}"
+            class="btn btn-sm btn-outline">
+            <i class="fa-solid fa-chevron-left"></i>
+        </a>
+        {% endif %}
+
+        {% for page_num in docs.iter_pages() %}
+        {% if page_num %}
+        {% if page_num != docs.page %}
+        <a href="{{ url_for('main.admin_list', page=page_num, q=request.args.get('q')) }}"
+            class="btn btn-sm btn-outline" style="min-width: 40px;">{{ page_num }}</a>
+        {% else %}
+        <span class="btn btn-sm btn-primary" style="min-width: 40px;">{{ page_num }}</span>
+        {% endif %}
+        {% else %}
+        <span style="align-self: center; color: var(--text-secondary);">...</span>
+        {% endif %}
+        {% endfor %}
+
+        {% if docs.has_next %}
+        <a href="{{ url_for('main.admin_list', page=docs.next_num, q=request.args.get('q')) }}"
+            class="btn btn-sm btn-outline">
+            <i class="fa-solid fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 5rem; color: var(--text-secondary);">
+        <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 1.5rem; opacity: 0.2;"></i>
+        <p style="font-size: 1.1rem;">No documents match your search.</p>
+        <a href="{{ url_for('main.admin_list') }}"
+            style="color: var(--accent-color); font-weight: 600; margin-top: 1rem; display: inline-block;">Clear
+            Filters</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

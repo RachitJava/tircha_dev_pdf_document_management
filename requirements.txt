@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Bcrypt
+Flask-JWT-Extended
+PyMuPDF
+bleach
+python-dotenv
+gunicorn
+psycopg2-binary

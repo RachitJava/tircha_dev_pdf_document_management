@@ -1,0 +1,23 @@
+app = "flask-pdf-manager-rachit-1769892118"
+primary_region = "yyz"
+
+[env]
+  PORT = "8080"
+  DB_PATH = "/data/data.json"
+
+[[mounts]]
+  source = "pdf_manager_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[vm]]
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
